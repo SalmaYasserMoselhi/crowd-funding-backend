@@ -1,0 +1,10 @@
+[
+  {"model": "projects.category", "pk": 1, "fields": {"name": "Technology", "description": "Tech and innovation projects", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 2, "fields": {"name": "Education", "description": "Learning and academic initiatives", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 3, "fields": {"name": "Health", "description": "Medical and wellness campaigns", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 4, "fields": {"name": "Arts & Culture", "description": "Creative and cultural projects", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 5, "fields": {"name": "Environment", "description": "Environmental and sustainability projects", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 6, "fields": {"name": "Community", "description": "Local community development", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 7, "fields": {"name": "Sports", "description": "Athletic and sports initiatives", "created_at": "2024-01-01T00:00:00Z"}},
+  {"model": "projects.category", "pk": 8, "fields": {"name": "Business", "description": "Entrepreneurship and startups", "created_at": "2024-01-01T00:00:00Z"}}
+]
