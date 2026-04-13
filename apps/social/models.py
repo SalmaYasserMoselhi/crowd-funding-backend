@@ -1,7 +1,9 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import models
+from django.db import models, transaction
 from django.db.models import Avg, Sum
+from django.db.models.signals import post_delete
+from django.dispatch import receiver
 
 from core.models import TrackableModel
 
@@ -17,16 +19,20 @@ class Donation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        total = (
-            Donation.objects.filter(project=self.project).aggregate(Sum('amount'))[
-                'amount__sum'
-            ]
-            or 0
-        )
-        self.project.current_donations = total
-        self.project.save(update_fields=['current_donations'])
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            project = type(self.project).objects.select_for_update().get(pk=self.project_id)
+            total = Donation.objects.filter(project=project).aggregate(Sum('amount'))['amount__sum'] or 0
+            project.current_donations = total
+            project.save(update_fields=['current_donations'])
 
+@receiver(post_delete, sender=Donation)
+def update_project_donations_on_delete(sender, instance, **kwargs):
+    with transaction.atomic():
+        project = type(instance.project).objects.select_for_update().get(pk=instance.project_id)
+        total = Donation.objects.filter(project=project).aggregate(Sum('amount'))['amount__sum'] or 0
+        project.current_donations = total
+        project.save(update_fields=['current_donations'])
 
 class Comment(TrackableModel):
     content = models.TextField()
@@ -58,16 +64,20 @@ class Rating(models.Model):
         unique_together = ('user', 'project')
 
     def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        avg = (
-            Rating.objects.filter(project=self.project).aggregate(Avg('value'))[
-                'value__avg'
-            ]
-            or 0
-        )
-        self.project.average_rating = avg
-        self.project.save(update_fields=['average_rating'])
+        with transaction.atomic():
+            super().save(*args, **kwargs)
+            project = type(self.project).objects.select_for_update().get(pk=self.project_id)
+            avg = Rating.objects.filter(project=project).aggregate(Avg('value'))['value__avg'] or 0
+            project.average_rating = avg
+            project.save(update_fields=['average_rating'])
 
+@receiver(post_delete, sender=Rating)
+def update_project_rating_on_delete(sender, instance, **kwargs):
+    with transaction.atomic():
+        project = type(instance.project).objects.select_for_update().get(pk=instance.project_id)
+        avg = Rating.objects.filter(project=project).aggregate(Avg('value'))['value__avg'] or 0
+        project.average_rating = avg
+        project.save(update_fields=['average_rating'])
 
 class Report(models.Model):
     REPORT_TYPES = (
