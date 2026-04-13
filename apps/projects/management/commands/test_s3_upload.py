@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from botocore.exceptions import ClientError
 from django.core.management.base import BaseCommand
 from django.core.files import File
 from django.core.files.storage import default_storage
@@ -61,6 +62,19 @@ class Command(BaseCommand):
                 self.style.SUCCESS(f"✅ Exists check: {exists}")
             )
 
+        except ClientError as e:
+            error = e.response.get('Error', {})
+            self.stdout.write(
+                self.style.ERROR(
+                    f"❌ Upload failed: {error.get('Code', 'ClientError')} - {error.get('Message', str(e))}"
+                )
+            )
+            self.stdout.write(
+                self.style.WARNING(
+                    "Verify AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY for this bucket and region."
+                )
+            )
+            raise
         except Exception as e:
             self.stdout.write(self.style.ERROR(f"❌ Upload failed: {e}"))
             self.stdout.write(
