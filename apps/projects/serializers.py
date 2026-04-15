@@ -12,7 +12,7 @@ class TagSerializer(serializers.ModelSerializer):
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ['id', 'name', 'description', 'created_at']
+        fields = ['id', 'name', 'slug', 'description', 'created_at']
 
 
 class ProjectMediaSerializer(serializers.ModelSerializer):
