@@ -51,7 +51,6 @@ class Project(TrackableModel):
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True)
     tags = models.ManyToManyField(Tag, related_name='projects', blank=True)
 
-    # Denormalized fields — updated via Donation.save() and Rating.save()
     average_rating = models.DecimalField(max_digits=3, decimal_places=2, default=0.00)
     current_donations = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     is_featured = models.BooleanField(default=False)
@@ -79,6 +78,22 @@ class Project(TrackableModel):
 
     def __str__(self):
         return self.title
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=['status', '-average_rating'],
+                name='idx_running_top_rated',
+            ),
+            models.Index(
+                fields=['status', 'is_featured', '-created_at'],
+                name='idx_featured',
+            ),
+            models.Index(
+                fields=['category', '-created_at'],
+                name='idx_category_latest',
+            ),
+        ]
 
 
 class ProjectMedia(models.Model):

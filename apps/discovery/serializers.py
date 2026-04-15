@@ -10,10 +10,6 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class ProjectCardSerializer(serializers.ModelSerializer):
-    """
-    Serializer matching CONTRACT #7 — ProjectCardProps interface:
-    { id, title, image, funded_pct, avg_rating, category }
-    """
     image = serializers.SerializerMethodField()
     funded_pct = serializers.SerializerMethodField()
     avg_rating = serializers.SerializerMethodField()
@@ -24,11 +20,12 @@ class ProjectCardSerializer(serializers.ModelSerializer):
         fields = ['id', 'title', 'image', 'funded_pct', 'avg_rating', 'category']
 
     def get_image(self, obj):
-        cover = obj.media.filter(is_cover=True).first() or obj.media.first()
-        if cover:
-            request = self.context.get('request')
-            return request.build_absolute_uri(cover.image.url) if request else cover.image.url
-        return None
+        media_list = obj.media.all()
+        if not media_list:
+            return None
+        cover = media_list[0]
+        request = self.context.get('request')
+        return request.build_absolute_uri(cover.image.url) if request else cover.image.url
 
     def get_funded_pct(self, obj):
         if obj.total_target <= 0:
