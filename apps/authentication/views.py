@@ -108,10 +108,9 @@ class VerifyOTPAPIView(APIView):
                 return Response({"error": "OTP has expired. Please request a new one."}, status=400)
             
             user.is_active = True
-            refresh = RefreshToken.for_user(user)
             user.save()
             otp_record.delete()
-            
+            refresh = RefreshToken.for_user(user)
             return Response({
                 "message": "Email verified successfully!",
                 "Tokens": {
