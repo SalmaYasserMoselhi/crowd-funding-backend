@@ -46,6 +46,14 @@ INSTALLED_APPS = [
     'apps.projects',
     'apps.social',
     'apps.discovery',
+    # allauth
+    'dj_rest_auth',
+    'dj_rest_auth.registration',# Required for social login endpoints
+    'django.contrib.sites',  # Required for allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 ]
 
 MIDDLEWARE = [
@@ -57,6 +65,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware'
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -125,6 +134,43 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 AUTH_USER_MODEL = 'authentication.User'
 
+SITE_ID = 1
+SOCIALACCOUNT_ADAPTER = 'apps.authentication.adapter.CustomSocialAccountAdapter'
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'APP': {
+            'client_id': config('GOOGLE_CLIENT_ID'),
+            'secret': config('GOOGLE_CLIENT_SECRET'),
+            'key': ''
+        }
+    }
+}
+
+ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USERNAME_REQUIRED = False
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Crucial since you use email as the identifier
+# ==========================================
+# EMAIL CONFIGURATION (Real SMTP Sending)
+# ==========================================
+# Switch to the SMTP backend to send real emails
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+
+# Gmail's standard SMTP settings
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+
+# Your Credentials
+EMAIL_HOST_USER = config("GOOGLE_EMAIL")# Put your real Gmail here
+EMAIL_HOST_PASSWORD =config("GOOGLE_EMAIL_PASSWORD")     # Put your 16-character App Password here (no spaces needed)
+
+DEFAULT_FROM_EMAIL = f'CrowdFund Egypt <{config("GOOGLE_EMAIL")}>'
 
 # Media files
 
@@ -135,9 +181,9 @@ MEDIA_ROOT = BASE_DIR / 'media'
 # Django REST Framework
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'dj_rest_auth.jwt_auth.JWTCookieAuthentication',
+    ),
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
@@ -161,9 +207,16 @@ SIMPLE_JWT = {
         days=config('REFRESH_TOKEN_LIFETIME_DAYS', cast=int, default=7)
     ),
     'AUTH_HEADER_TYPES': ('Bearer',),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
 }
 
-
+REST_AUTH = {
+    'USE_JWT': True,
+    'JWT_AUTH_COOKIE': 'my-app-auth',
+    'JWT_AUTH_REFRESH_COOKIE': 'my-refresh-token',
+    'TOKEN_MODEL': None,  # <--- Add this line
+}
 # CORS
 
 CORS_ALLOWED_ORIGINS = config(
