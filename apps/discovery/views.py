@@ -1,24 +1,38 @@
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.utils import timezone
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.projects.models import Category, Project
+from apps.projects.models import Category, Project, ProjectMedia
+from core.pagination import StandardResultsPagination
 from .serializers import CategorySerializer, ProjectCardSerializer
 
 
-def running_projects():
-    """Projects that are active right now — not cancelled/completed, within date range."""
-    now = timezone.now()
+CARD_FIELDS = (
+    'id', 'title', 'total_target', 'current_donations',
+    'average_rating', 'category__name',
+)
+
+MEDIA_PREFETCH = Prefetch(
+    'media',
+    queryset=ProjectMedia.objects.order_by('-is_cover', 'order', '-created_at'),
+)
+
+def _base_qs():
     return (
-        Project.objects.filter(
-            status='running',
-            start_time__lte=now,
-            end_time__gte=now,
-        )
+        Project.objects
         .select_related('category')
-        .prefetch_related('media', 'tags')
+        .prefetch_related(MEDIA_PREFETCH)
+        .only(*CARD_FIELDS)
+    )
+
+def running_projects():
+    now = timezone.now()
+    return _base_qs().filter(
+        status='running',
+        start_time__lte=now,
+        end_time__gte=now,
     )
 
 
@@ -26,20 +40,19 @@ class HomepageView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        qs = running_projects()
+        running_qs = running_projects()
         ctx = {'request': request}
 
+        top5_rated = list(running_qs.order_by('-average_rating')[:5])
+        latest5 = list(_base_qs().order_by('-created_at')[:5])
+        featured5 = list(running_qs.filter(is_featured=True).order_by('-created_at')[:5])
+        categories = Category.objects.all()
+
         return Response({
-            'top5_rated': ProjectCardSerializer(
-                qs.order_by('-average_rating')[:5], many=True, context=ctx
-            ).data,
-            'latest5': ProjectCardSerializer(
-                qs.order_by('-created_at')[:5], many=True, context=ctx
-            ).data,
-            'featured5': ProjectCardSerializer(
-                qs.filter(is_featured=True)[:5], many=True, context=ctx
-            ).data,
-            'categories': CategorySerializer(Category.objects.all(), many=True).data,
+            'top5_rated': ProjectCardSerializer(top5_rated, many=True, context=ctx).data,
+            'latest5': ProjectCardSerializer(latest5, many=True, context=ctx).data,
+            'featured5': ProjectCardSerializer(featured5, many=True, context=ctx).data,
+            'categories': CategorySerializer(categories, many=True).data,
         })
 
 
@@ -49,30 +62,28 @@ class SearchView(APIView):
     def get(self, request):
         q = request.query_params.get('q', '').strip()
         if not q:
-            return Response({'count': 0, 'results': []})
+            return Response({'count': 0, 'next': None, 'previous': None, 'results': []})
 
         qs = (
-            Project.objects.filter(
-                Q(title__icontains=q) | Q(tags__name__icontains=q)
-            )
-            .select_related('category')
-            .prefetch_related('media', 'tags')
+            _base_qs()
+            .filter(Q(title__icontains=q) | Q(tags__name__icontains=q))
             .distinct()
+            .order_by('-created_at')
         )
 
-        ctx = {'request': request}
-        return Response({
-            'count': qs.count(),
-            'results': ProjectCardSerializer(qs, many=True, context=ctx).data,
-        })
+        paginator = StandardResultsPagination()
+        page = paginator.paginate_queryset(qs, request)
+        data = ProjectCardSerializer(page, many=True, context={'request': request}).data
+        return paginator.get_paginated_response(data)
 
 
 class CategoryListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        categories = Category.objects.all()
-        return Response(CategorySerializer(categories, many=True).data)
+        return Response(
+            CategorySerializer(Category.objects.all(), many=True).data
+        )
 
 
 class CategoryProjectsView(APIView):
@@ -82,17 +93,11 @@ class CategoryProjectsView(APIView):
         try:
             category = Category.objects.get(slug=slug)
         except Category.DoesNotExist:
-            return Response({'detail': 'Category not found.'}, status=404)
+            return Response({'error': 'Category not found.'}, status=404)
 
-        qs = (
-            Project.objects.filter(category=category)
-            .select_related('category')
-            .prefetch_related('media', 'tags')
-            .order_by('-created_at')
-        )
+        qs = _base_qs().filter(category=category).order_by('-created_at')
 
-        ctx = {'request': request}
-        return Response({
-            'category': CategorySerializer(category).data,
-            'projects': ProjectCardSerializer(qs, many=True, context=ctx).data,
-        })
+        paginator = StandardResultsPagination()
+        page = paginator.paginate_queryset(qs, request)
+        data = ProjectCardSerializer(page, many=True, context={'request': request}).data
+        return paginator.get_paginated_response(data)
