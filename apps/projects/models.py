@@ -1,8 +1,13 @@
+import os
+from io import BytesIO
+
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 from django.utils.text import slugify
 
@@ -162,6 +167,67 @@ class ProjectMedia(models.Model):
     class Meta:
         ordering = ['order', '-created_at']
         verbose_name_plural = 'Project Media'
+
+    def _prepare_high_quality_image(self):
+        """
+        Normalize uploaded images with high-quality encoding before saving.
+        This runs for both API uploads and Django admin uploads.
+        """
+        if not self.image:
+            return
+
+        file_obj = getattr(self.image, 'file', None)
+        if not file_obj or getattr(file_obj, '_quality_processed', False):
+            return
+
+        try:
+            file_obj.seek(0)
+            with Image.open(file_obj) as img:
+                img = ImageOps.exif_transpose(img)
+                img_format = (img.format or '').upper()
+
+                original_name = os.path.basename(self.image.name or 'upload')
+                base_name, ext = os.path.splitext(original_name)
+                ext = ext.lower()
+
+                output = BytesIO()
+
+                if img_format in {'JPEG', 'JPG'} or ext in {'.jpg', '.jpeg'}:
+                    if img.mode not in {'RGB', 'L'}:
+                        img = img.convert('RGB')
+                    img.save(
+                        output,
+                        format='JPEG',
+                        quality=95,
+                        optimize=True,
+                        progressive=True,
+                        subsampling=0,
+                    )
+                    new_name = f'{base_name}.jpg'
+                elif img_format == 'WEBP' or ext == '.webp':
+                    if img.mode not in {'RGB', 'RGBA'}:
+                        img = img.convert('RGB')
+                    img.save(output, format='WEBP', quality=95, method=6)
+                    new_name = f'{base_name}.webp'
+                elif img_format == 'PNG' or ext == '.png':
+                    img.save(output, format='PNG', optimize=True, compress_level=3)
+                    new_name = f'{base_name}.png'
+                else:
+                    # Keep unsupported formats untouched.
+                    file_obj.seek(0)
+                    return
+
+                output.seek(0)
+                self.image.save(new_name, ContentFile(output.getvalue()), save=False)
+                if getattr(self.image, 'file', None):
+                    self.image.file._quality_processed = True
+        except (UnidentifiedImageError, OSError, ValueError):
+            if hasattr(file_obj, 'seek'):
+                file_obj.seek(0)
+
+    def save(self, *args, **kwargs):
+        self._prepare_high_quality_image()
+        return super().save(*args, **kwargs)
     
     def __str__(self):
         return f'Media for {self.project.title} (Cover: {self.is_cover})'
