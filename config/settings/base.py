@@ -219,9 +219,8 @@ SIMPLE_JWT = {
 
 REST_AUTH = {
     'USE_JWT': True,
-    'JWT_AUTH_COOKIE': 'my-app-auth',
-    'JWT_AUTH_REFRESH_COOKIE': 'my-refresh-token',
-    'TOKEN_MODEL': None,  # <--- Add this line
+    'JWT_AUTH_HTTPONLY': False, # Compels the backend to return refresh tokens directly in JSON payload instead of hiding them in cookies
+    'TOKEN_MODEL': None,  # Maps SimpleJWT natively
 }
 # CORS
 

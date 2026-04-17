@@ -23,7 +23,7 @@ class User(AbstractUser, TrackableModel):
         regex=r'^01[0-2,5]{1}[0-9]{8}$',
         message='Phone number must be a valid Egyptian number (e.g., 01012345678).',
     )
-    phone_number = models.CharField(validators=[phone_regex], max_length=15)
+    phone_number = models.CharField(validators=[phone_regex], blank=True, null=True, max_length=15)
     profile_picture = models.URLField(max_length=500, null=True, blank=True)
     is_active = models.BooleanField(default=False)
 

@@ -108,11 +108,10 @@ class VerifyOTPAPIView(APIView):
                 return Response({"error": "OTP has expired. Please request a new one."}, status=400)
             
             user.is_active = True
+            refresh = RefreshToken.for_user(user)
             user.save()
-
             otp_record.delete()
             
-            refresh = RefreshToken.for_user(user)
             return Response({
                 "message": "Email verified successfully!",
                 "Tokens": {
@@ -141,11 +140,15 @@ class ResendOTPAPIView(APIView):
 class ForgetPasswordApiView(APIView):
     permission_classes = [AllowAny]
     def post(self, request):
-        email = request.data.get('email')
-        user = User.objects.get(email=email)
-
-        send_otp_email(user, purpose="reset")    
-        return Response({"status": "success", "message": "please check you email!"})
+        try:
+            email = request.data.get('email')
+            if not email:
+                return Response({"status": "error", "message": "email is required."}, status=400)
+            user = User.objects.get(email=email)
+            send_otp_email(user, purpose="reset")    
+            return Response({"status": "success", "message": "please check you email!"}, status=200)
+        except User.DoesNotExist:
+            return Response({"status": "error", "message": "User matching this email does not exist."}, status=400)
 
 from rest_framework_simplejwt.tokens import TokenError
 
