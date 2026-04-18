@@ -57,6 +57,54 @@ class ProjectCRUDTests(TestCase):
         response = self.client.get("/api/projects/")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
+    def test_list_projects_paginated_shape(self):
+        """List endpoint returns DRF page metadata and supports page/page_size."""
+        self.client.force_authenticate(self.owner)
+
+        for idx in range(3):
+            data = {
+                **self.project_data,
+                "title": f"Project {idx}",
+            }
+            self.client.post("/api/projects/", data, format="json")
+
+        self.client.logout()
+        response = self.client.get("/api/projects/?page=1&page_size=2")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn("count", response.data)
+        self.assertIn("next", response.data)
+        self.assertIn("previous", response.data)
+        self.assertIn("results", response.data)
+        self.assertEqual(response.data["count"], 3)
+        self.assertEqual(len(response.data["results"]), 2)
+        self.assertIsNotNone(response.data["next"])
+        self.assertIsNone(response.data["previous"])
+        self.assertIn("page=2", response.data["next"])
+        self.assertIn("page_size=2", response.data["next"])
+
+    def test_list_projects_second_page_has_previous(self):
+        """Second page includes previous link and expected number of results."""
+        self.client.force_authenticate(self.owner)
+
+        for idx in range(3):
+            data = {
+                **self.project_data,
+                "title": f"Paged Project {idx}",
+            }
+            self.client.post("/api/projects/", data, format="json")
+
+        self.client.logout()
+        response = self.client.get("/api/projects/?page=2&page_size=2")
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 3)
+        self.assertEqual(len(response.data["results"]), 1)
+        self.assertIsNone(response.data["next"])
+        self.assertIsNotNone(response.data["previous"])
+        self.assertIn("page=1", response.data["previous"])
+        self.assertIn("page_size=2", response.data["previous"])
+
     # ── CREATE ───────────────────────────────
 
     def test_create_project_authenticated(self):

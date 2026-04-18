@@ -7,6 +7,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.pagination import StandardResultsPagination
 from core.permissions import IsProjectOwnerOrReadOnly
 
 from .filters import ProjectFilter
@@ -22,6 +23,7 @@ from .serializers import (
     
 class ProjectListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = StandardResultsPagination
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_class = ProjectFilter
     search_fields = ['title', 'tags__name']
