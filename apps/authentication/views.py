@@ -12,6 +12,7 @@ from .models import User, OTP
 from .utils import send_otp_email
 from .serializer import UserSerializer, RegisterationSerializer
 from datetime import datetime
+from decouple import config
 
 
 class GoogleLoginAPI(SocialLoginView):
