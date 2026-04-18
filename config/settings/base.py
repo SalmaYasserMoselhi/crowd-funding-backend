@@ -151,10 +151,9 @@ SOCIALACCOUNT_PROVIDERS = {
     }
 }
 
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_USER_MODEL_USERNAME_FIELD = None # Crucial since you use email as the identifier
 # ==========================================
 # EMAIL CONFIGURATION (Real SMTP Sending)

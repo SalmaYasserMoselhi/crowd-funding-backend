@@ -74,21 +74,23 @@ class LoginAPIView(APIView):
         email = request.data.get('email')
         password = request.data.get('password')
 
-        user = authenticate(request, email=email, password=password)
+        try:
+            user = User.objects.get(email__iexact=email)
+            if user.check_password(password):
+                if not user.is_active:
+                    return Response({"status": "error", "Error message": "this account need to be activate"}, status=401)
+                refresh = RefreshToken.for_user(user)
 
-        if user:
-            if not user.is_active:
-                return Response({"status": "error", "Error message": "this account need to be activate"}, status=401)
-            refresh = RefreshToken.for_user(user)
-
-            return Response({
-                "status": 'success',
-                "Tokens": {
-                    "refresh": str(refresh),
-                    "access": str(refresh.access_token)
-                }
-            }, status=200)
-        else:
+                return Response({
+                    "status": 'success',
+                    "Tokens": {
+                        "refresh": str(refresh),
+                        "access": str(refresh.access_token)
+                    }
+                }, status=200)
+            else:
+                return Response({"status": 'error', "Error messgae": "invalid password or email"}, status=401)
+        except User.DoesNotExist:
             return Response({"status": 'error', "Error messgae": "invalid password or email"}, status=401)
 
 
@@ -110,7 +112,7 @@ class VerifyOTPAPIView(APIView):
             user.is_active = True
             refresh = RefreshToken.for_user(user)
             user.save()
-            otp_record.delete()\n
+            otp_record.delete()
             return Response({
                 "message": "Email verified successfully!",
                 "Tokens": {
