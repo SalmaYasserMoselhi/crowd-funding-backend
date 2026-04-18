@@ -96,7 +96,7 @@ class CategoryProjectsView(APIView):
         except Category.DoesNotExist:
             return Response({'error': 'Category not found.'}, status=404)
 
-        qs = _base_qs().filter(category=category, is_cancelled=False).order_by('-created_at')
+        qs = _base_qs().filter(category=category).order_by('-created_at')
 
         paginator = StandardResultsPagination()
         page = paginator.paginate_queryset(qs, request)
