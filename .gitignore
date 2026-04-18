@@ -29,7 +29,9 @@ db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
+staticfiles_build/
 static_root/
+.vercel/
 
 # ── Testing ──────────────────────────────────────────────────────────────────
 .pytest_cache/
