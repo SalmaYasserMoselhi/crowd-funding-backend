@@ -31,6 +31,7 @@ def running_projects():
     now = timezone.now()
     return _base_qs().filter(
         status='running',
+        is_cancelled=False,
         start_time__lte=now,
         end_time__gte=now,
     )
