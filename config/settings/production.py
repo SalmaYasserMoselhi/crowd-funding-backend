@@ -5,16 +5,14 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = config('DEBUG', cast=bool, default=False)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=str, default='.vercel.app,localhost').split(',')
+_allowed = str(config('ALLOWED_HOSTS', default='.vercel.app,localhost'))
+ALLOWED_HOSTS = _allowed.split(',')
 # Always allow Vercel preview/production domains
 if '.vercel.app' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.vercel.app')
 
-CSRF_TRUSTED_ORIGINS = config(
-    'CSRF_TRUSTED_ORIGINS',
-    cast=str,
-    default='https://*.vercel.app',
-).split(',')
+_csrf = str(config('CSRF_TRUSTED_ORIGINS', default='https://*.vercel.app'))
+CSRF_TRUSTED_ORIGINS = _csrf.split(',')
 
 # Static files — Vercel serves from staticfiles_build/static
 STATIC_URL = '/static/'
@@ -25,11 +23,11 @@ STATICFILES_DIRS = []
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-SUPABASE_DB_URL = config('SUPABASE_DB_URL', cast=str, default='')
+_db_url = str(config('DATABASE_URL', default=config('SUPABASE_DB_URL', default='')))
 
-if SUPABASE_DB_URL:
+if _db_url:
     DATABASES = {
-        'default': dj_database_url.parse(str(SUPABASE_DB_URL), conn_max_age=600, ssl_require=True)
+        'default': dj_database_url.parse(_db_url, conn_max_age=600, ssl_require=True)
     }
 else:
     DATABASES = {
@@ -55,7 +53,7 @@ EMAIL_HOST = config('EMAIL_HOST', default='smtp.sendgrid.net')
 EMAIL_PORT = config('EMAIL_PORT', cast=int, default=587)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool, default=True)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='apikey')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@crowdfundegypt.com')
 
 

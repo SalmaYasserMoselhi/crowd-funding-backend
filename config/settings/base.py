@@ -221,11 +221,11 @@ REST_AUTH = {
 }
 # CORS
 
-CORS_ALLOWED_ORIGINS = config(
+_cors = str(config(
     'CORS_ALLOWED_ORIGINS',
-    cast=str,
     default='http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174',
-).split(',')
+))
+CORS_ALLOWED_ORIGINS = _cors.split(',')
 
 
 # Frontend URL (used in email links)
