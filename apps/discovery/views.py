@@ -31,6 +31,7 @@ def running_projects():
     now = timezone.now()
     return _base_qs().filter(
         status='running',
+        is_cancelled=False,
         start_time__lte=now,
         end_time__gte=now,
     )
@@ -44,7 +45,7 @@ class HomepageView(APIView):
         ctx = {'request': request}
 
         top5_rated = list(running_qs.order_by('-average_rating')[:5])
-        latest5 = list(_base_qs().order_by('-created_at')[:5])
+        latest5 = list(_base_qs().filter(is_cancelled=False).order_by('-created_at')[:5])
         featured5 = list(running_qs.filter(is_featured=True).order_by('-created_at')[:5])
         categories = Category.objects.all()
 
