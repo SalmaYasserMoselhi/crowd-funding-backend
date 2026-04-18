@@ -5,13 +5,14 @@ from .base import *  # noqa: F401, F403
 
 DEBUG = config('DEBUG', cast=bool, default=False)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.vercel.app,localhost').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=str, default='.vercel.app,localhost').split(',')
 # Always allow Vercel preview/production domains
 if '.vercel.app' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('.vercel.app')
 
 CSRF_TRUSTED_ORIGINS = config(
     'CSRF_TRUSTED_ORIGINS',
+    cast=str,
     default='https://*.vercel.app',
 ).split(',')
 
@@ -24,11 +25,11 @@ STATICFILES_DIRS = []
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-SUPABASE_DB_URL = config('SUPABASE_DB_URL', default='')
+SUPABASE_DB_URL = config('SUPABASE_DB_URL', cast=str, default='')
 
 if SUPABASE_DB_URL:
     DATABASES = {
-        'default': dj_database_url.parse(SUPABASE_DB_URL, conn_max_age=600, ssl_require=True)
+        'default': dj_database_url.parse(str(SUPABASE_DB_URL), conn_max_age=600, ssl_require=True)
     }
 else:
     DATABASES = {
