@@ -3,7 +3,7 @@ import dj_database_url
 
 from .base import *  # noqa: F401, F403
 
-DEBUG = False
+DEBUG = config('DEBUG', cast=bool, default=False)
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='.vercel.app,localhost').split(',')
 # Always allow Vercel preview/production domains
