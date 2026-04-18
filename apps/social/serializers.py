@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.projects.models import Project
+
 from .models import Comment, Donation, Rating, Report
 from django.shortcuts import get_object_or_404
 
@@ -99,10 +101,11 @@ class CommentReplySerializer(serializers.ModelSerializer):
 
 class RatingUpsertSerializer(serializers.ModelSerializer):
     new_project_average = serializers.FloatField(source='project.average_rating', read_only=True)
+    user_rating = serializers.IntegerField(source='value', read_only=True)
 
     class Meta:
         model = Rating
-        fields = ['id', 'value', 'new_project_average']
+        fields = ['id', 'value', 'user_rating', 'new_project_average']
 
     def validate(self, attrs):
         user = self.context['request'].user
@@ -115,14 +118,15 @@ class RatingUpsertSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         user = self.context['request'].user
-        project = self.context['project']
+        project:Project = self.context['project']
         
         rating, created = Rating.objects.update_or_create(
             user=user,
             project=project,
             defaults={'value': validated_data['value']},
         )
-        
+
+        project.refresh_from_db()
         rating.refresh_from_db()
         return rating
 

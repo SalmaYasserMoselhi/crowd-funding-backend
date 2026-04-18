@@ -1,5 +1,6 @@
 from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
+from django.db.models import Prefetch
 
 from rest_framework import filters, generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
@@ -12,6 +13,7 @@ from core.permissions import IsProjectOwnerOrReadOnly
 
 from .filters import ProjectFilter
 from .models import Category, Project, ProjectMedia, Tag
+from apps.social.models import Rating
 from .serializers import (
     CategorySerializer,
     ProjectCreateUpdateSerializer,
@@ -20,6 +22,7 @@ from .serializers import (
     ProjectMediaSerializer,
     TagSerializer,
 )
+
     
 class ProjectListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticatedOrReadOnly]
@@ -41,8 +44,21 @@ class ProjectListCreateView(generics.ListCreateAPIView):
         serializer.save()
 
 class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Project.objects.select_related('category', 'owner').prefetch_related('tags', 'media')
     permission_classes = [IsProjectOwnerOrReadOnly]
+
+    def get_queryset(self):
+        queryset = Project.objects.select_related('category', 'owner').prefetch_related('tags', 'media')
+        
+        user = self.request.user
+        if user.is_authenticated:
+            return queryset.prefetch_related(
+                Prefetch(
+                    'ratings',
+                    queryset=Rating.objects.filter(user=user),
+                    to_attr='user_specific_rating'
+                )
+            )
+        return queryset
 
     def get_serializer_class(self):
         if self.request.method in ('PUT', 'PATCH'):

@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from apps.social.models import Rating
+
 from .models import Category, Project, ProjectMedia, Tag
 
 
@@ -60,6 +62,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     similar_projects = serializers.SerializerMethodField()
     funded_percentage = serializers.SerializerMethodField()
     is_running = serializers.ReadOnlyField()
+    user_rating = serializers.SerializerMethodField()
 
     class Meta:
         model = Project
@@ -71,6 +74,7 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
             'current_amount',
             'current_donations',
             'average_rating',
+            'user_rating',
             'funded_percentage',
             'is_running',
             'status',
@@ -102,6 +106,17 @@ class ProjectDetailSerializer(serializers.ModelSerializer):
     def get_funded_percentage(self, obj):
         return obj.funded_percentage
 
+    def get_user_rating(self, obj):
+        user_ratings = getattr(obj, 'user_specific_rating', [])
+        if user_ratings:
+            return user_ratings[0].value
+        
+        request = self.context.get('request')
+        if request and request.user.is_authenticated and not hasattr(obj, 'user_specific_rating'):
+            rating = Rating.objects.filter(project=obj, user=request.user).first()
+            return rating.value if rating else None
+            
+        return None
 
 class ProjectCreateUpdateSerializer(serializers.ModelSerializer):
     tag_names = serializers.ListField(
