@@ -16,7 +16,7 @@ from datetime import datetime
 
 class GoogleLoginAPI(SocialLoginView):
     adapter_class = GoogleOAuth2Adapter
-    callback_url = "http://127.0.0.1:8000/" # This should match the redirect URI in Google Console, even if not used by the API
+    callback_url = config('GOOGLE_CALLBACK_URL') # This should match the redirect URI in Google Console, even if not used by the API
     client_class = OAuth2Client
 
 
