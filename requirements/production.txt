@@ -1,3 +1,8 @@
 -r base.txt
 
-gunicorn==23.0.0
+# Production server
+gunicorn==22.0.0
+
+# Static files
+whitenoise==6.7.0
+
