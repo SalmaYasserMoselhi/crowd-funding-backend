@@ -1,26 +1,29 @@
-from django.urls import path
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-
+from django.urls import path, include
+from rest_framework_simplejwt.views import TokenRefreshView
 from .views import (
-    ActivateAccountView,
-    ChangePasswordView,
-    DeleteAccountView,
-    LogoutView,
-    PasswordResetConfirmView,
-    PasswordResetRequestView,
-    RegisterView,
-    UserProfileView,
+    GoogleLoginAPI, UserAPIView, RegisterAPIView, LoginAPIView, 
+    VerifyOTPAPIView, ResendOTPAPIView, ForgetPasswordApiView, 
+    ResetPasswordApiView, LogoutAPIView, ChangePasswordAPIView, MeAPIView
 )
 
 urlpatterns = [
-    path('register/', RegisterView.as_view(), name='auth-register'),
-    path('activate/<uuid:token>/', ActivateAccountView.as_view(), name='auth-activate'),
-    path('login/', TokenObtainPairView.as_view(), name='auth-login'),
-    path('login/refresh/', TokenRefreshView.as_view(), name='auth-login-refresh'),
-    path('logout/', LogoutView.as_view(), name='auth-logout'),
-    path('me/', UserProfileView.as_view(), name='auth-me'),
-    path('me/change-password/', ChangePasswordView.as_view(), name='auth-change-password'),
-    path('me/delete/', DeleteAccountView.as_view(), name='auth-delete'),
-    path('password-reset/', PasswordResetRequestView.as_view(), name='auth-password-reset'),
-    path('password-reset/confirm/', PasswordResetConfirmView.as_view(), name='auth-password-reset-confirm'),
+    # ... your other urls
+    path('accounts/', include('allauth.urls')),
+    path('google/', GoogleLoginAPI.as_view(), name='google_login'),
+
+    path('users/', UserAPIView.as_view(), name='user_api'),
+    path('forgetpassword/', ForgetPasswordApiView.as_view(), name='forget_password'),
+    path('resetpassword/', ResetPasswordApiView.as_view(), name='reset_password'),
+
+    path('register/', RegisterAPIView.as_view(), name='register'),
+    path('login/', LoginAPIView.as_view(), name='login'),
+    path('logout/', LogoutAPIView.as_view(), name='logout'),
+    path('change-password/', ChangePasswordAPIView.as_view(), name='change_password'),
+
+    path('otp/verify/', VerifyOTPAPIView.as_view(), name='verify_otp'),
+    path('otp/resend/', ResendOTPAPIView.as_view(), name='resend_otp'),
+
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+
+    path('me/', MeAPIView.as_view(), name='my_profile')
 ]
