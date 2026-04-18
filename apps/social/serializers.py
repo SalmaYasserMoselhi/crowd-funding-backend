@@ -1,6 +1,9 @@
 from rest_framework import serializers
 
+from apps.projects.models import Project
+
 from .models import Comment, Donation, Rating, Report
+from django.shortcuts import get_object_or_404
 
 class DonationResponseSerializer(serializers.ModelSerializer):
     funded_pct = serializers.SerializerMethodField()
@@ -20,6 +23,17 @@ class DonationSerializer(serializers.ModelSerializer):
         model = Donation
         fields = ['id', 'amount', 'project', 'created_at']
         read_only_fields = ['created_at', 'project']
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        project_id = self.context['view'].kwargs.get('project_id')
+        from apps.projects.models import Project
+        project = get_object_or_404(Project, pk=project_id)
+
+        if project.owner == user:
+            raise serializers.ValidationError("Owners cannot donate to their own projects.")
+        
+        return attrs
 
     def create(self, validated_data):
         validated_data['user'] = self.context['request'].user
@@ -87,21 +101,32 @@ class CommentReplySerializer(serializers.ModelSerializer):
 
 class RatingUpsertSerializer(serializers.ModelSerializer):
     new_project_average = serializers.FloatField(source='project.average_rating', read_only=True)
+    user_rating = serializers.IntegerField(source='value', read_only=True)
 
     class Meta:
         model = Rating
-        fields = ['id', 'value', 'new_project_average']
+        fields = ['id', 'value', 'user_rating', 'new_project_average']
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        project = self.context['project']
+
+        if project.owner == user:
+            raise serializers.ValidationError("Owners cannot rate their own projects.")
+        
+        return attrs
 
     def create(self, validated_data):
         user = self.context['request'].user
-        project = self.context['project']
+        project:Project = self.context['project']
         
         rating, created = Rating.objects.update_or_create(
             user=user,
             project=project,
             defaults={'value': validated_data['value']},
         )
-        
+
+        project.refresh_from_db()
         rating.refresh_from_db()
         return rating
 
